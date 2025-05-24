@@ -6,6 +6,8 @@ Folders :
  - Smart-Store folder for Gemini API, and backend code
  - Smart-Stack-Store for frontend files
  - Smart-Stack-Store-backend contains endpoints to access GCP SQL Database
+<br>
+
 YouTube demo video Part 1 : https://youtu.be/HyAvn6FeOHU
-YouTube demo video Part 2 : https://youtu.be/bRwLuFLhmHE
-YouTube Complete demo video : https://youtu.be/6I2IVbk4eoY
+<br>YouTube demo video Part 2 : https://youtu.be/bRwLuFLhmHE
+<br>YouTube Complete demo video : https://youtu.be/6I2IVbk4eoY
