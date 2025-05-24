@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini RAG Query</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        textarea,
+        input[type="file"] {
+            width: calc(100% - 20px);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus,
+        input[type="file"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            background-color: #ecf0f1;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            margin-top: 15px;
+            text-align: center;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 14px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .response-section {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 25px;
+        }
+
+        .response-section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        #responseOutput {
+            background-color: #ecf0f1;
+            border: 1px solid #cfd9df;
+            border-radius: 8px;
+            padding: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 100px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            font-style: italic;
+            color: #777;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            background-color: #fdeded;
+            border: 1px solid #fbc4c4;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini RAG Query Interface</h1>
+
+        <div class="form-group">
+            <label for="prompt">Text Prompt:</label>
+            <textarea id="prompt" placeholder="Enter your query here..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="imageUpload">Upload Image (Optional):</label>
+            <input type="file" id="imageUpload" accept="image/jpeg, image/png, image/webp">
+            <div class="preview-container" id="previewContainer" style="display: none;">
+                <img id="imagePreview" src="#" alt="Image Preview">
+            </div>
+        </div>
+
+        <button id="submitBtn">Send Query</button>
+
+        <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+            Processing your request...
+        </div>
+
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+        <div class="response-section">
+            <h2>Gemini Response:</h2>
+            <pre id="responseOutput">No response yet.</pre>
+        </div>
+    </div>
+
+    <script>
+        // const SERVER_URL = 'https://durable-melody-460304-t5.uc.r.appspot.com/'; 
+        const SERVER_URL = 'http://localhost:3001';
+        const promptInput = document.getElementById('prompt');
+        const imageUpload = document.getElementById('imageUpload');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const responseOutput = document.getElementById('responseOutput');
+        const errorMessage = document.getElementById('errorMessage');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewContainer = document.getElementById('previewContainer');
+
+        let imageBase64 = null;
+
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imageBase64 = e.target.result.split(',')[1];
+                    imagePreview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imageBase64 = null;
+                imagePreview.src = '#';
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+
+            if (!prompt && !imageBase64) {
+                displayError('Please enter a text prompt or upload an image.');
+                return;
+            }
+
+            responseOutput.textContent = 'No response yet.';
+            errorMessage.style.display = 'none';
+            loadingIndicator.style.display = 'flex';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/gemini-rag-query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt, imageBase64 }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    responseOutput.textContent = data.response;
+                } else {
+                    displayError(data.error || 'An unknown error occurred.');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayError('Failed to connect to the backend server. Check console for details.');
+            } finally {
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function displayError(message) {
+            errorMessage.textContent = `Error: ${message}`;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

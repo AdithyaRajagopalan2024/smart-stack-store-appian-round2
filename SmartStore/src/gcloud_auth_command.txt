@@ -1,0 +1,1 @@
+cloud-sql-proxy.exe durable-melody-460304-t5:us-central1:smart-stack-db --credentials-file="D:\College_files\Appian_Round_2\Appianer\final-Testing\durable-melody-460304-t5-643d2baee675.json" --port=3307
